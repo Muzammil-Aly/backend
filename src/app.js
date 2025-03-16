@@ -18,4 +18,14 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" })); // use for takin
 app.use(express.static("public")); //used it for files like pdf , images etc
 
 app.use(cookieParser()); // use it for brower curd opearaion like managing cookies
+
+// routes import
+
+import userRouter from "./routes/user.routes.js";
+
+// routes declaration
+
+// app.use("/user", userRouter);
+app.use("/api/v1/users", userRouter);
+
 export { app };
