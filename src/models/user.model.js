@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+// import { Video } from "./video.model";
 const userSchema = new Schema(
   {
     username: {
@@ -11,7 +12,7 @@ const userSchema = new Schema(
       trim: true,
       index: true, // index we use for searching purpose
     },
-    emial: {
+    email: {
       type: String,
       required: true,
       unique: true,
@@ -34,7 +35,7 @@ const userSchema = new Schema(
     watchHistory: [
       {
         type: Schema.Types.ObjectId,
-        ref: Video,
+        ref: "Video",
       },
     ],
     password: {

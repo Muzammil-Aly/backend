@@ -10,15 +10,20 @@ cloudinary.config({
 
 const uploadOnCloudinary = async (localFilePath) => {
   try {
-    if (!localFilePath) console.log("FilePath not found!!");
+    if (!localFilePath) {
+      console.log("FilePath not found!!");
+      return null;
+    }
 
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
     });
     console.log("File has been uploaded on Cloudinary ", response.url);
+    fs.unlinkSync(localFilePath);
     return response;
   } catch (error) {
     fs.unlinkSync(localFilePath);
+
     return null;
   }
 };
