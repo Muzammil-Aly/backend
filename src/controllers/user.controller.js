@@ -1,21 +1,25 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
+// import { User } from "../models/user.model.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-
+import jwt from "jsonwebtoken";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
-    const user = User.findById(userId);
+    const user = await User.findById(userId);
 
     const refreshToken = user.generateRefreshToken();
     const accesToken = user.generateAccessToken();
 
+    if (!user) {
+      console.log("user is not found generateacesstoken");
+    }
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    return { refreshToken, accesToken };
+    return { accesToken, refreshToken };
   } catch (error) {
     throw new ApiError(
       500,
@@ -119,12 +123,13 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User does not exit");
   }
 
-  const isPasswordvalid = await user.isPasswordCorrect(password);
+  const isPasswordvalid = await user.isPasswordCorrect(password); // this is the method call from user model
 
   if (!isPasswordvalid) {
     throw new ApiError(401, "Invalid user Credentials");
   }
-  const { refreshToken, accesToken } = await generateAccessAndRefreshToken(
+
+  const { accesToken, refreshToken } = await generateAccessAndRefreshToken(
     user._id
   );
 
@@ -133,7 +138,7 @@ const loginUser = asyncHandler(async (req, res) => {
   );
 
   const options = {
-    httpOnly: true,
+    httpOnly: true, // the response will be only editable from the servre side only
     secure: true,
   };
   return res
@@ -141,18 +146,21 @@ const loginUser = asyncHandler(async (req, res) => {
     .cookie("accessToken", accesToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
-      200,
-      {
-        user: loggedInUser,
-        accesToken,
-        refreshToken,
-      },
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accesToken,
+          refreshToken,
+        },
 
-      "User logged In Successfully"
+        "User logged In Successfully"
+      )
     );
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
+  // as there is no id how to loggout? so there is a middleware "auth.middleware"
   await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -168,9 +176,56 @@ const logoutUser = asyncHandler(async (req, res) => {
   };
   return res
     .status(200)
-    .clearCookie("accessToken", accesToken)
-    .clearCookie("refreshToken", refreshToken)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged Out"));
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies?.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized Request!");
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = User.findById(decodedToken?._id);
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
+
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "Refresh token is expired or used");
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, newRefreshToken } =
+      await generateAccessAndRefreshToken(user._id);
+
+    return res
+      .status(200)
+      .Cookie("accessToken", accessToken, options)
+      .Cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken: newRefreshToken },
+          "Access token refreshed"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token");
+  }
 });
 
 export { registerUser, loginUser, logoutUser };
