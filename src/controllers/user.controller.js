@@ -85,7 +85,7 @@ const registerUser = asyncHandler(async (req, res) => {
     coverImage: coverImage?.url || "",
     email,
     password,
-    username: username.toLowerCase,
+    username: username.toLowerCase(),
   });
 
   // making validation if usercreated or not and not passing important detals like password and refrshToken
@@ -165,7 +165,7 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: { refreshToken: undefined },
+      $unset: { refreshToken: 1 },
     },
     {
       new: true,
@@ -184,7 +184,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
-    req.cookies?.refreshToken || req.body.refreshToken;
+    req.cookies.refreshToken || req.body.refreshToken;
 
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Unauthorized Request!");
@@ -196,7 +196,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET
     );
 
-    const user = User.findById(decodedToken?._id);
+    const user = await User.findById(decodedToken?._id);
     if (!user) {
       throw new ApiError(401, "Invalid refresh token");
     }
@@ -215,8 +215,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .Cookie("accessToken", accessToken, options)
-      .Cookie("refreshToken", newRefreshToken, options)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
       .json(
         new ApiResponse(
           200,
@@ -229,17 +229,17 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-const changeCurrentPassword = asyncHandler(async (res, req) => {
-  const { oldPassword, newPasword } = req.body;
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
 
-  const user = User.findById(req.user?._id);
+  const user = await User.findById(req.user?._id);
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
   if (!isPasswordCorrect) {
     throw new ApiError(400, "Invalid old password");
   }
 
-  user.password = newPasword;
+  user.password = newPassword;
 
   await user.save({ validateBeforeSave: false });
 
@@ -277,8 +277,32 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Accout details has been updated."));
 });
 
+const updateUserName = asyncHandler(async (req, res) => {
+  const { username } = req.body;
+  console.log("The username is ", username);
+
+  if (!username) {
+    throw new ApiError(400, "Username field is mandatory");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        username,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Username has been updated"));
+});
+
 const updateUserAvatar = asyncHandler(async (req, res) => {
-  const avatarLocalPath = req.files?.path;
+  const avatarLocalPath = req.file?.path;
+  // console.log("Avatar url", req.files.path);
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Error while uploading the avatar");
@@ -286,7 +310,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
   const avatar = await uploadOnCloudinary(avatarLocalPath);
 
-  const user = User.findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
@@ -304,7 +328,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 });
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
-  const coverLocalPath = req.files?.path;
+  const coverLocalPath = req.file?.path;
 
   if (!coverLocalPath) {
     throw new ApiError(400, "Error while uploading the CoverImage");
@@ -312,7 +336,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
   const coverImage = await uploadOnCloudinary(coverLocalPath);
 
-  const user = User.findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
@@ -331,14 +355,14 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
-
+  console.log("Username get profile info", username);
   if (!username) {
     throw new ApiError(400, "username is missing");
   }
 
   // we can find username by findbyId but here we are using pipline so there is an option as "$match" which will do the same it will minimize the database call
 
-  const channel = User.aggregate([
+  const channel = await User.aggregate([
     {
       $match: {
         username: username?.toLowerCase(),
@@ -369,7 +393,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
           $size: "$subscribers",
         },
         channelsSubscribedToCount: {
-          $size: " subscribedTo",
+          $size: "$subscribedTo",
         },
         isSubscribed: {
           $cond: {
@@ -406,6 +430,75 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     );
 });
 
+// const getUserChannelProfile = asyncHandler(async (req, res) => {
+//   const { username } = req.params;
+//   console.log("Fetching profile for:", username);
+
+//   if (!username) {
+//     throw new ApiError(400, "Username is missing");
+//   }
+
+//   // Ensure case-insensitive matching
+//   const channel = await User.aggregate([
+//     {
+//       $match: {
+//         username: { $regex: new RegExp(`^${username}$`, "i") },
+//       },
+//     },
+//     {
+//       $lookup: {
+//         from: "subscriptions",
+//         localField: "_id",
+//         foreignField: "channel",
+//         as: "subscribers",
+//       },
+//     },
+//     {
+//       $lookup: {
+//         from: "subscriptions",
+//         localField: "_id",
+//         foreignField: "subscriber",
+//         as: "subscribedTo",
+//       },
+//     },
+//     {
+//       $addFields: {
+//         subscribersCount: { $size: "$subscribers" },
+//         channelsSubscribedToCount: { $size: "$subscribedTo" },
+//         isSubscribed: {
+//           $cond: {
+//             if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+//             then: true,
+//             else: false,
+//           },
+//         },
+//       },
+//     },
+//     {
+//       $project: {
+//         fullName: 1,
+//         username: 1,
+//         subscribersCount: 1,
+//         channelsSubscribedToCount: 1,
+//         isSubscribed: 1,
+//         avatar: 1,
+//         coverImage: 1,
+//         email: 1,
+//       },
+//     },
+//   ]);
+
+//   if (!channel.length) {
+//     throw new ApiError(404, "Channel does not exist");
+//   }
+
+//   return res
+//     .status(200)
+//     .json(
+//       new ApiResponse(200, channel[0], "User channel fetched successfully")
+//     );
+// });
+
 const getWatchHistory = asyncHandler(async (req, res) => {
   // Find user
 
@@ -413,7 +506,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     {
       $match: {
         // this is converting the id into the formate of "MongoDb formate"
-        _id: new mongoose.Types.ObjectId(req.user.id),
+        _id: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
@@ -425,10 +518,10 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         pipeline: [
           {
             $lookup: {
-              from: "usres",
+              from: "users",
               localField: "owner",
               foreignField: "_id",
-              as: "OwnereDetails",
+              as: "ownerDetails",
 
               pipeline: [
                 {
@@ -473,4 +566,7 @@ export {
   updateAccountDetails,
   updateUserAvatar,
   updateUserCoverImage,
+  getUserChannelProfile,
+  getWatchHistory,
+  updateUserName,
 };
