@@ -16,6 +16,7 @@ import {
 import { upload } from "../middlewares/multer.middleware.js";
 // import { getWatchHistory } from "../../../Chai aur code/chai-backend-main/src/controllers/user.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
+// import { createTweet } from "../controllers/tweet.controller.js";
 const router = Router();
 router.route("/register").post(
   upload.fields([
@@ -39,7 +40,7 @@ router.route("/change-password").post(verifyJwt, changeCurrentPassword);
 router.route("/current-user").post(verifyJwt, getCurrentUser);
 router.route("/update-account").patch(verifyJwt, updateAccountDetails);
 router.route("/update-username").patch(verifyJwt, updateUserName);
-
+// router.route("/create-Tweet").post(verifyJwt, createTweet);
 router
   .route("/avatar")
   .patch(verifyJwt, upload.single("avatar"), updateUserAvatar);
