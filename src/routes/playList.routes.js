@@ -12,16 +12,18 @@ import {
 } from "../controllers/playList.controller.js";
 
 const router = Router();
+// ("/c/:username");
+// router.route("/delete-Tweet").delete(verifyJwt, deleteTweet);
 
 router.route("/create-playlist").post(verifyJwt, createPlaylist);
-router.route("/getUser-playlists").post(verifyJwt, getUserPlaylists);
-router.route("/ get-playlist-byId").post(verifyJwt, getPlaylistById);
+router.route("/getUser-playlists/:userId").get(verifyJwt, getUserPlaylists);
+router.route("/get-playlist-byId/:playlistId").get(verifyJwt, getPlaylistById);
 router.route("/add-video-to-playlist").post(verifyJwt, addVideoToPlaylist);
 router
   .route("/remove-video-from-playlist")
   .post(verifyJwt, removeVideoFromPlaylist);
-router.route("/delete-playlist").post(verifyJwt, deletePlaylist);
+router.route("/delete-playlist/:playlistId").delete(verifyJwt, deletePlaylist);
 
-router.route("/update-playlist").post(verifyJwt, updatePlaylist);
+router.route("/update-playlist/:playlistId").put(verifyJwt, updatePlaylist);
 
 export default router;

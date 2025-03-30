@@ -1,5 +1,5 @@
 import mongoose, { isValidObjectId } from "mongoose";
-import { Playlist } from "../models/playlist.model.js";
+import { PlayList } from "../models/playlist.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -19,7 +19,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User not Found");
   }
-  const playlist = await Playlist.create({
+  const playlist = await PlayList.create({
     name,
     description,
     owner: user._id,
@@ -27,6 +27,12 @@ const createPlaylist = asyncHandler(async (req, res) => {
   if (!playlist) {
     throw new ApiError(500, "Something went wrong");
   }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, playlist, "User playlists created successfully")
+    );
 });
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
@@ -36,7 +42,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid user id");
   }
 
-  const playList = await Playlist.find({ owner: userId }).populate("videos");
+  const playList = await PlayList.find({ owner: userId }).populate("videos");
   if (!playList) {
     throw new ApiError(404, "No playlist found");
   }
@@ -51,7 +57,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
   if (!playlistId || !isValidObjectId(playlistId)) {
     throw new ApiError(400, "Invalid playlist id");
   }
-  const playlist = await Playlist.findById(playlistId).populate("videos");
+  const playlist = await PlayList.findById(playlistId).populate("videos");
   if (!playlist) {
     throw new ApiError(404, "No playlist found");
   }
@@ -63,17 +69,20 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
 
-  const addVideo = await Playlist.findById(playlistId);
+  const addVideo = await PlayList.findById(playlistId);
   if (!addVideo) {
     throw new ApiError(404, "Playlist not found");
   }
+  console.log("playlist  found");
+
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video id");
   }
-  const video = await Playlist.findById(videoId);
+  const video = await PlayList.findById(videoId);
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
+
   const isVideoAlreadyInPlaylist = addVideo.videos.some(
     (video) => video.toString() === videoId
   );
@@ -91,14 +100,14 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
-  const removeVideo = await Playlist.findById(playlistId);
+  const removeVideo = await PlayList.findById(playlistId);
   if (!removeVideo) {
     throw new ApiError(404, "Playlist not found");
   }
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video id");
   }
-  const video = await Playlist.findById(videoId);
+  const video = await PlayList.findById(videoId);
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
@@ -123,11 +132,18 @@ const deletePlaylist = asyncHandler(async (req, res) => {
   if (!playlistId || !isValidObjectId(playlistId)) {
     throw new ApiError(400, "Invalid playlist id");
   }
-  const deletePlaylist = await Playlist.findById(playlistId);
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new ApiError(404, "User not Found");
+  }
+  const deletePlaylist = await PlayList.findById({
+    owner: user._id,
+    _id: playlistId,
+  });
   if (!deletePlaylist) {
     throw new ApiError(404, "Playlist not found");
   }
-  await Playlist.deleteOne({ playlistId });
+  await PlayList.deleteOne({ playlistId });
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Playlist deleted successfully"));
@@ -137,10 +153,24 @@ const updatePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   const { name, description } = req.body;
 
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new ApiError(404, "User not Found");
+  }
+
   if (!playlistId || !isValidObjectId(playlistId)) {
+    console.log("type of playlistId", typeof playlistId);
     throw new ApiError(400, "Invalid playlist id");
   }
-  const updatePlaylist = await Playlist.findById(playlistId);
+
+  //   const updatePlaylist = await PlayList.findOne({
+  //     owner: user._id,
+  //     _id: playlistId,
+  //   });
+
+  const updatePlaylist = await PlayList.findById(playlistId);
+
+  //   const updatePlaylist = await PlayList.findById(playlistId);
   if (!updatePlaylist) {
     throw new ApiError(404, "Playlist not found");
   }
