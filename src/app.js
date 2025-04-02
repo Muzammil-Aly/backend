@@ -24,11 +24,13 @@ app.use(cookieParser()); // use it for brower curd opearaion like managing cooki
 import userRouter from "./routes/user.routes.js";
 import tweetRouter from "./routes/tweeter.routes.js";
 import playlistRouter from "./routes/playList.routes.js";
+import videoRouter from "./routes/video.routes.js";
 // routes declaration
 
 // app.use("/user", userRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/tweets", tweetRouter);
 app.use("/api/v1/play-lists", playlistRouter);
+app.use("/api/v1/videos", videoRouter);
 
 export { app };
