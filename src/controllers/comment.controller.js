@@ -48,9 +48,9 @@ const addComment = asyncHandler(async (req, res) => {
 
 const updateComment = asyncHandler(async (req, res) => {
   // TODO: update a comment
-  const { videoId } = req.params;
+  const { videoId, commentId } = req.params;
   const { content } = req.body;
-  const { commentId } = req.params;
+  //   const { commentId } = req.params;
 
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video id");

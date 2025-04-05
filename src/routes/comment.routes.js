@@ -3,17 +3,19 @@ import { Router } from "express";
 const router = Router();
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import {
-  createComment,
+  addComment,
   deleteComment,
-  getAllComments,
-  getCommentById,
+  getVideoComments,
   updateComment,
 } from "../controllers/comment.controller.js";
 
-router.route("/create-comment").post(verifyJwt, createComment);
-router.route("/get-all-comments").get(verifyJwt, getAllComments);
-router.route("/get-comment-id/:commentId").get(verifyJwt, getCommentById);
-router.route("/update-comment/:commentId").patch(verifyJwt, updateComment);
-router.route("/delete-comment/:commentId").delete(verifyJwt, deleteComment);
+router.route("/add-comment/:videoId").post(verifyJwt, addComment);
+router.route("/get-video-comments/:commentId").get(verifyJwt, getVideoComments);
+router
+  .route("/update-comment/:videoId/:commentId")
+  .patch(verifyJwt, updateComment);
+router
+  .route("/delete-comment/:videoId/:commentId")
+  .delete(verifyJwt, deleteComment);
 
 export default router;

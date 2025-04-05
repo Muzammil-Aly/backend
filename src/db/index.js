@@ -12,6 +12,17 @@ const connectDB = async () => {
     console.log(
       `MongoDB connected !! DB Host : ${connectionInstance.connection.host}`
     );
+
+    // try {
+    //   await User.collection.dropIndex("emial_1");
+    //   console.log("Dropped incorrect index: emial_1");
+    // } catch (err) {
+    //   if (err.code === 27) {
+    //     console.log("Index emial_1 does not exist.");
+    //   } else {
+    //     console.log("Error dropping index:", err);
+    //   }
+    // }
   } catch (error) {
     console.log("MOGODB connection failed", error);
     process.exit(1);

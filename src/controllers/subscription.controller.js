@@ -58,13 +58,15 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid channel id");
   }
 
-  const channel = await Subscription.findById(channelId);
+  const channel = await Subscription.findOne({ channel: channelId });
+
   if (!channel) {
     throw new ApiError(404, "Channel not Found");
   }
   const subscribers = await Subscription.find({ channel: channelId }).populate(
     "subscriber"
   );
+  console.log("subscribers", subscribers);
   if (!subscribers) {
     throw new ApiError(404, "No subscribers found");
   }
@@ -83,7 +85,9 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid channel id");
   }
 
-  const subscriber = await Subscription.findById(subscriberId);
+  const subscriber = await Subscription.findOne({
+    subscriber: subscriberId,
+  });
   if (!subscriber) {
     throw new ApiError(404, "Channel not Found");
   }

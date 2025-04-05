@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { verifyJwt } from "../middlewares/auth.middleware";
+import { verifyJwt } from "../middlewares/auth.middleware.js";
+
 import {
   getSubscribedChannels,
   getUserChannelSubscribers,
   toggleSubscription,
-} from "../controllers/subscription.controller";
+} from "../controllers/subscription.controller.js";
 
 const router = Router();
 
@@ -13,9 +14,9 @@ router
   .post(verifyJwt, toggleSubscription);
 router
   .route("/get-userChannel-subscription/:channelId")
-  .post(verifyJwt, getUserChannelSubscribers);
+  .get(verifyJwt, getUserChannelSubscribers);
 router
   .route("/get-getSubscribe-channels/:subscriberId")
-  .post(verifyJwt, getSubscribedChannels);
+  .get(verifyJwt, getSubscribedChannels);
 
 export default router;
