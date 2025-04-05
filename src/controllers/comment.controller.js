@@ -10,6 +10,42 @@ const getVideoComments = asyncHandler(async (req, res) => {
   //TODO: get all comments for a video
   const { videoId } = req.params;
   const { page = 1, limit = 10 } = req.query;
+
+  if (!videoId || !isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video id");
+  }
+  const user = req.user._id;
+
+  const videoExits = await Video.findById(videoId);
+  if (!videoExits) {
+    throw new ApiError(404, "Video does not exist");
+  }
+
+  const comments = await Comment.find({ video: videoId })
+    .populate("owner", "name profilePicture")
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+  const totalComments = await Comment.countDocuments({ video: videoId });
+  const totalPages = Math.ceil(totalComments / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+  const nextPage = hasNextPage ? parseInt(page) + 1 : null;
+  const prevPage = hasPrevPage ? parseInt(page) - 1 : null;
+  const commentCount = comments.length;
+  const response = {
+    comments,
+    totalComments,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    nextPage,
+    prevPage,
+  };
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, response, "Comments fetched successfully"));
 });
 
 const addComment = asyncHandler(async (req, res) => {

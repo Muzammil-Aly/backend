@@ -20,18 +20,15 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     video: videoId,
     likedBy: req.user._id,
   });
-  if (!existingLike) {
-    throw new ApiError(404, "Video not Found");
-  }
 
-  if (existingLike) {
-    await Like.deleteOne({ likedBy: req.user._id });
-    return res.status(200).json(new ApiResponse(200, {}, "UnLiked the video"));
-  } else {
+  if (!existingLike) {
     await Like.create({ video: videoId, likedBy: req.user._id });
     return res
       .status(200)
       .json(new ApiResponse(200, {}, "Liked to the channel"));
+  } else {
+    await Like.deleteOne({ likedBy: req.user._id });
+    return res.status(200).json(new ApiResponse(200, {}, "UnLiked the video"));
   }
 });
 
@@ -51,20 +48,17 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     comment: commentId,
     likedBy: req.user._id,
   });
-  if (!existingLike) {
-    throw new ApiError(404, "Comment not Found");
-  }
 
-  if (existingLike) {
-    await Like.deleteOne({ likedBy: req.user._id });
-    return res
-      .status(200)
-      .json(new ApiResponse(200, {}, "UnLiked the comment"));
-  } else {
+  if (!existingLike) {
     await Like.create({ comment: commentId, likedBy: req.user._id });
     return res
       .status(200)
       .json(new ApiResponse(200, {}, "Liked to the comment"));
+  } else {
+    await Like.deleteOne({ likedBy: req.user._id });
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "UnLiked the comment"));
   }
 });
 
@@ -85,9 +79,6 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
     likedBy: req.user._id,
   });
 
-  if (!existingLike) {
-    throw new ApiError(404, "Tweet not Found");
-  }
   if (existingLike) {
     await Like.deleteOne({ likedBy: req.user._id });
     return res
@@ -103,6 +94,23 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 const getLikedVideos = asyncHandler(async (req, res) => {
   //TODO: get all liked videos
+  const { userId } = req.params;
+  if (!userId || !isValidObjectId(userId)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  if (!req.user || !req.user._id) {
+    throw new ApiError(401, "Unauthorized - User not authenticated");
+  }
+  const user = req.user._id;
+
+  const likedVideos = await Like.find({ video: user }).populate("video");
+  if (!likedVideos) {
+    throw new ApiError(404, "No liked videos found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, likedVideos, "Liked videos"));
 });
 
 export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };

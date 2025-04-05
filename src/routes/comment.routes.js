@@ -10,7 +10,7 @@ import {
 } from "../controllers/comment.controller.js";
 
 router.route("/add-comment/:videoId").post(verifyJwt, addComment);
-router.route("/get-video-comments/:commentId").get(verifyJwt, getVideoComments);
+router.route("/get-video-comments/:videoId").get(verifyJwt, getVideoComments);
 router
   .route("/update-comment/:videoId/:commentId")
   .patch(verifyJwt, updateComment);

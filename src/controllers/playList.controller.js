@@ -78,10 +78,6 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video id");
   }
-  const video = await PlayList.findById(videoId);
-  if (!video) {
-    throw new ApiError(404, "Video not found");
-  }
 
   const isVideoAlreadyInPlaylist = addVideo.videos.some(
     (video) => video.toString() === videoId

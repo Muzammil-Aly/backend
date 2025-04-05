@@ -9,6 +9,57 @@ import Ffmpeg from "fluent-ffmpeg";
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   //TODO: get all videos based on query, sort, pagination
+
+  const user = req.user._id;
+  const filter = {
+    isPublished: false,
+  };
+  if (query) {
+    filter.title = { $regex: query, $options: "i" };
+  }
+  if (userId) {
+    filter.owner = userId;
+  } else {
+    filter.owner = { $ne: user };
+  }
+  const sort = {};
+  if (sortBy && sortType) {
+    sort[sortBy] = sortType === "asc" ? 1 : -1;
+  } else {
+    sort.createdAt = -1;
+  }
+  const skip = (page - 1) * limit;
+  const videos = await Video.find({ owner: user })
+    .populate("owner")
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .lean()
+    .exec();
+  const totalVideos = await Video.countDocuments({ owner: user });
+
+  const totalPages = Math.ceil(totalVideos / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+  const nextPage = hasNextPage ? parseInt(page) + 1 : null;
+  const prevPage = hasPrevPage ? parseInt(page) - 1 : null;
+  const videoCount = videos.length;
+  const response = {
+    videos,
+    totalVideos,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    nextPage,
+    prevPage,
+  };
+
+  return res.status(200).json(
+    new ApiResponse(200, response, "Videos fetched successfully", {
+      page: parseInt(page),
+      limit: parseInt(limit),
+    })
+  );
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
